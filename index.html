@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>mHealth ONNX Model</title>
+
+  <!-- ONNX Runtime Web -->
+  <script src="https://cdn.jsdelivr.net/npm/onnxruntime-web/dist/ort.min.js"></script>
+</head>
+
+<body>
+
+<h2>mHealth Activity Prediction</h2>
+
+<!-- Input boxes -->
+<div id="inputs"></div>
+
+<button onclick="runModel()">Predict</button>
+
+<p id="output"></p>
+
+<script>
+  // === CHANGE THIS TO MATCH YOUR MODEL ===
+  const FEATURE_COUNT = 30;   // <-- replace with your input_dim
+
+  // Create input boxes
+  let inputsDiv = document.getElementById("inputs");
+  for (let i = 0; i < FEATURE_COUNT; i++) {
+    inputsDiv.innerHTML += `Feature ${i+1}: <input id="f${i}" type="number" step="any"><br>`;
+  }
+
+  async function runModel() {
+    const output = document.getElementById("output");
+    output.innerText = "Loading model...";
+
+    // Collect inputs into Float32Array
+    let arr = new Float32Array(FEATURE_COUNT);
+    for (let i = 0; i < FEATURE_COUNT; i++) {
+      arr[i] = parseFloat(document.getElementById(`f${i}`).value) || 0;
+    }
+
+    try {
+      // Load ONNX model
+      const session = await ort.InferenceSession.create("mhealth_best_model.onnx");
+
+      // Create tensor
+      const tensor = new ort.Tensor("float32", arr, [1, FEATURE_COUNT]);
+
+      // Run inference
+      const inputName = session.inputNames[0];
+      const results = await session.run({ [inputName]: tensor });
+
+      // Get output scores
+      const outputName = session.outputNames[0];
+      const scores = results[outputName].data;
+
+      // Pick the class with highest score
+      const predictedClass = scores.indexOf(Math.max(...scores));
+
+      output.innerText = "Predicted Activity Class: " + predictedClass;
+
+    } catch (err) {
+      output.innerText = "Error: " + err;
+    }
+  }
+</script>
+
+</body>
+</html>
