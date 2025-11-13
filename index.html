@@ -20,21 +20,39 @@
 <p id="output"></p>
 
 <script>
-  const FEATURE_COUNT = 12;  
+  // Feature names based on your dataset
+  const FEATURES = [
+    "Acceleration (Left Wrist) X-axis (alx)",
+    "Acceleration (Left Wrist) Y-axis (aly)",
+    "Acceleration (Left Wrist) Z-axis (alz)",
+    "Gyroscope (Left Wrist) X-axis (glx)",
+    "Gyroscope (Left Wrist) Y-axis (gly)",
+    "Gyroscope (Left Wrist) Z-axis (glz)",
+    "Acceleration (Right Wrist) X-axis (arx)",
+    "Acceleration (Right Wrist) Y-axis (ary)",
+    "Acceleration (Right Wrist) Z-axis (arz)",
+    "Gyroscope (Right Wrist) X-axis (grx)",
+    "Gyroscope (Right Wrist) Y-axis (gry)",
+    "Gyroscope (Right Wrist) Z-axis (grz)"
+  ];
 
-  // Create input boxes
   let inputsDiv = document.getElementById("inputs");
-  for (let i = 0; i < FEATURE_COUNT; i++) {
-    inputsDiv.innerHTML += `Feature ${i+1}: <input id="f${i}" type="number" step="any"><br>`;
-  }
+
+  // Create labeled input boxes
+  FEATURES.forEach((feature, i) => {
+    inputsDiv.innerHTML += `
+      <label>${feature}: </label>
+      <input id="f${i}" type="number" step="any"><br><br>
+    `;
+  });
 
   async function runModel() {
     const output = document.getElementById("output");
     output.innerText = "Loading model...";
 
     // Collect inputs into Float32Array
-    let arr = new Float32Array(FEATURE_COUNT);
-    for (let i = 0; i < FEATURE_COUNT; i++) {
+    let arr = new Float32Array(FEATURES.length);
+    for (let i = 0; i < FEATURES.length; i++) {
       arr[i] = parseFloat(document.getElementById(`f${i}`).value) || 0;
     }
 
@@ -43,7 +61,7 @@
       const session = await ort.InferenceSession.create("mhealth_best_model.onnx");
 
       // Create tensor
-      const tensor = new ort.Tensor("float32", arr, [1, FEATURE_COUNT]);
+      const tensor = new ort.Tensor("float32", arr, [1, FEATURES.length]);
 
       // Run inference
       const inputName = session.inputNames[0];
@@ -66,4 +84,3 @@
 
 </body>
 </html>
-
