@@ -1,80 +1,126 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>mHealth ONNX Model</title>
+  <title>mHealth Activity Prediction</title>
 
   <!-- ONNX Runtime Web -->
   <script src="https://cdn.jsdelivr.net/npm/onnxruntime-web/dist/ort.min.js"></script>
+
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 30px;
+    }
+    input {
+      width: 200px;
+      padding: 6px;
+      margin-bottom: 12px;
+    }
+    label {
+      font-weight: bold;
+    }
+  </style>
 </head>
 
 <body>
 
 <h2>mHealth Activity Prediction</h2>
 
-<!-- Input boxes -->
 <div id="inputs"></div>
 
 <button onclick="runModel()">Predict</button>
 
-<p id="output"></p>
+<p id="output" style="font-size: 1.2em; font-weight: bold; margin-top: 20px;"></p>
 
 <script>
-  // Feature names based on your dataset
+  /* -----------------------------------------
+     STEP 1: MHEALTH DATASET FEATURE NAMES
+     ----------------------------------------- */
   const FEATURES = [
-    "Acceleration (Left Wrist) X-axis (alx)",
-    "Acceleration (Left Wrist) Y-axis (aly)",
-    "Acceleration (Left Wrist) Z-axis (alz)",
-    "Gyroscope (Left Wrist) X-axis (glx)",
-    "Gyroscope (Left Wrist) Y-axis (gly)",
-    "Gyroscope (Left Wrist) Z-axis (glz)",
-    "Acceleration (Right Wrist) X-axis (arx)",
-    "Acceleration (Right Wrist) Y-axis (ary)",
-    "Acceleration (Right Wrist) Z-axis (arz)",
-    "Gyroscope (Right Wrist) X-axis (grx)",
-    "Gyroscope (Right Wrist) Y-axis (gry)",
-    "Gyroscope (Right Wrist) Z-axis (grz)"
+    "Acceleration (Left Ankle) X-axis (alx)",
+    "Acceleration (Left Ankle) Y-axis (aly)",
+    "Acceleration (Left Ankle) Z-axis (alz)",
+
+    "Gyroscope (Left Ankle) X-axis (glx)",
+    "Gyroscope (Left Ankle) Y-axis (gly)",
+    "Gyroscope (Left Ankle) Z-axis (glz)",
+
+    "Acceleration (Chest) X-axis (arx)",
+    "Acceleration (Chest) Y-axis (ary)",
+    "Acceleration (Chest) Z-axis (arz)",
+
+    "Gyroscope (Chest) X-axis (grx)",
+    "Gyroscope (Chest) Y-axis (gry)",
+    "Gyroscope (Chest) Z-axis (grz)"
   ];
 
+  /* -----------------------------------------
+     STEP 2: Replace with YOUR actual labels
+     Run this in Python:
+         print(le.classes_)
+     Then paste the result here.
+     ----------------------------------------- */
+
+  const ACTIVITY_LABELS = [
+    "Standing",
+    "Walking",
+    "Jogging",
+    "Running",
+    "Jumping",
+    "Lying",
+    "Sitting",
+    "Biking",
+    "Upstairs",
+    "Downstairs"
+  ];
+  // <-- Replace these with your real labels!!
+
+
+  // Build form inputs
   let inputsDiv = document.getElementById("inputs");
 
-  // Create labeled input boxes
   FEATURES.forEach((feature, i) => {
     inputsDiv.innerHTML += `
-      <label>${feature}: </label>
+      <label>${feature}:</label><br>
       <input id="f${i}" type="number" step="any"><br><br>
     `;
   });
 
+
+  /* -----------------------------------------
+     STEP 3: Run the ONNX Model
+     ----------------------------------------- */
   async function runModel() {
     const output = document.getElementById("output");
     output.innerText = "Loading model...";
 
-    // Collect inputs into Float32Array
+    // Convert input values → Float32 tensor
     let arr = new Float32Array(FEATURES.length);
     for (let i = 0; i < FEATURES.length; i++) {
       arr[i] = parseFloat(document.getElementById(`f${i}`).value) || 0;
     }
 
     try {
-      // Load ONNX model
+      // Load your ONNX model
       const session = await ort.InferenceSession.create("mhealth_best_model.onnx");
 
-      // Create tensor
+      // Create input tensor
       const tensor = new ort.Tensor("float32", arr, [1, FEATURES.length]);
 
       // Run inference
       const inputName = session.inputNames[0];
       const results = await session.run({ [inputName]: tensor });
 
-      // Get output scores
       const outputName = session.outputNames[0];
       const scores = results[outputName].data;
 
-      // Pick the class with highest score
+      // Pick highest probability class
       const predictedClass = scores.indexOf(Math.max(...scores));
 
-      output.innerText = "Predicted Activity Class: " + predictedClass;
+      // Show real activity label
+      output.innerText =
+        "Predicted Activity: " + ACTIVITY_LABELS[predictedClass];
 
     } catch (err) {
       output.innerText = "Error: " + err;
